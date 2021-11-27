@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Builds in the sandbox can now use `-Zbuild-std` when networking is disabled.
+  Previously, this would try to fetch the standard library sources, which would
+  error when networking was blocked. Note that you will still need to run
+  `toolchain.add_component("rust-src")` before trying to use build-std.
+
 ## [0.14.0] - 2021-08-19
 
 ### Added

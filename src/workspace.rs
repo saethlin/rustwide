@@ -27,6 +27,7 @@ pub struct WorkspaceBuilder {
     command_timeout: Option<Duration>,
     command_no_output_timeout: Option<Duration>,
     fetch_registry_index_during_builds: bool,
+    fetch_build_std_dependencies: bool,
     running_inside_docker: bool,
     fast_init: bool,
     rustup_profile: String,
@@ -45,6 +46,7 @@ impl WorkspaceBuilder {
             command_timeout: DEFAULT_COMMAND_TIMEOUT,
             command_no_output_timeout: DEFAULT_COMMAND_NO_OUTPUT_TIMEOUT,
             fetch_registry_index_during_builds: true,
+            fetch_build_std_dependencies: false,
             running_inside_docker: false,
             fast_init: false,
             rustup_profile: DEFAULT_RUSTUP_PROFILE.into(),
@@ -107,6 +109,19 @@ impl WorkspaceBuilder {
         self
     }
 
+    /// Enable or disable pre-fetching the dependencies for `-Z build-std` when preparing the sandbox (disabled by default).
+    ///
+    /// When this option is enabled, it is possible to use `-Zbuild-std` inside
+    /// the sandbox to build the standard library from source even when
+    /// networking is disabled. You will still need to run
+    /// `toolchain.add_component("rust-src")` before entering the sandbox.
+    #[cfg(any(feature = "unstable", doc))]
+    #[cfg_attr(docs_rs, doc(cfg(feature = "unstable")))]
+    pub fn fetch_build_std_dependencies(mut self, enable: bool) -> Self {
+        self.fetch_build_std_dependencies = enable;
+        self
+    }
+
     /// Enable or disable support for running Rustwide itself inside Docker (disabled by default).
     ///
     /// When support is enabled Rustwide will try to detect whether it's actually running inside a
@@ -160,6 +175,7 @@ impl WorkspaceBuilder {
                     command_timeout: self.command_timeout,
                     command_no_output_timeout: self.command_no_output_timeout,
                     fetch_registry_index_during_builds: self.fetch_registry_index_during_builds,
+                    fetch_build_std_dependencies: self.fetch_build_std_dependencies,
                     current_container: None,
                     rustup_profile: self.rustup_profile,
                 }),
@@ -183,6 +199,7 @@ struct WorkspaceInner {
     command_timeout: Option<Duration>,
     command_no_output_timeout: Option<Duration>,
     fetch_registry_index_during_builds: bool,
+    fetch_build_std_dependencies: bool,
     current_container: Option<CurrentContainer>,
     rustup_profile: String,
 }
@@ -297,6 +314,10 @@ impl Workspace {
 
     pub(crate) fn fetch_registry_index_during_builds(&self) -> bool {
         self.inner.fetch_registry_index_during_builds
+    }
+
+    pub(crate) fn fetch_build_std_dependencies(&self) -> bool {
+        self.inner.fetch_build_std_dependencies
     }
 
     pub(crate) fn current_container(&self) -> Option<&CurrentContainer> {

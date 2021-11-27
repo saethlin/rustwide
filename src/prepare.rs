@@ -139,9 +139,17 @@ impl<'a> Prepare<'a> {
 
     fn fetch_deps(&mut self) -> Result<(), Error> {
         let mut missing_deps = false;
-        let res = Command::new(self.workspace, self.toolchain.cargo())
+        let mut cmd = Command::new(self.workspace, self.toolchain.cargo())
             .args(&["fetch", "--manifest-path", "Cargo.toml"])
-            .cd(&self.source_dir)
+            .cd(&self.source_dir);
+        // Pass `-Zbuild-std` in case a build in the sandbox wants to use it;
+        // build-std has to have the source for libstd's dependencies available.
+        if self.workspace.fetch_build_std_dependencies() {
+            cmd = cmd
+                .args(&["-Zbuild-std"])
+                .env("__CARGO_TEST_CHANNEL_OVERRIDE_DO_NOT_USE_THIS", "nightly");
+        }
+        let res = cmd
             .process_lines(&mut |line, _| {
                 if line.contains("failed to load source for dependency") {
                     missing_deps = true;
